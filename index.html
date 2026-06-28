@@ -1187,22 +1187,31 @@ function statusChangeWeight(id, status){
   return 0;
 }
 
+// Regel A: Gestrichenes zaehlt nicht im Nenner (wird behandelt, als waere es weg).
 // Returns 0..1 representing how much this item contributes to "changed"
-// Items with subs: durchschnittliches Erneuerungs-Gewicht aller Subs
+// Items with subs: durchschnittliches Erneuerungs-Gewicht der NICHT gestrichenen Subs
 // Items without subs: Erneuerungs-Gewicht des eigenen Status
 function itemChangeWeight(item){
   if(item.subs && item.subs.length > 0){
-    const sum = item.subs.reduce((s,sub) => s + statusChangeWeight(sub.id, getS(sub.id)), 0);
-    return sum / item.subs.length;
+    const active = item.subs.filter(sub => getS(sub.id) !== 'strike');
+    if(active.length === 0) return 0;
+    const sum = active.reduce((s,sub) => s + statusChangeWeight(sub.id, getS(sub.id)), 0);
+    return sum / active.length;
   }
   return statusChangeWeight(item.id, getEffectiveStatus(item));
 }
 
-// Weighted progress for a column (0..100)
+// Nicht gestrichene Hauptpunkte eines Bereichs (= das, was weitergefuehrt wird)
+function colActiveItems(col){
+  return col.filter(item => getEffectiveStatus(item) !== 'strike');
+}
+
+// Weighted progress for a column (0..100), nur ueber nicht gestrichene Punkte
 function colProgress(col){
-  if(col.length === 0) return 0;
-  const totalWeight = col.reduce((sum, item) => sum + itemChangeWeight(item), 0);
-  return (totalWeight / col.length) * 100;
+  const active = colActiveItems(col);
+  if(active.length === 0) return 0;
+  const totalWeight = active.reduce((sum, item) => sum + itemChangeWeight(item), 0);
+  return (totalWeight / active.length) * 100;
 }
 
 // ─── DRAG ─────────────────────────────────────────────────────────────────────
@@ -1557,7 +1566,7 @@ function updateStats(){
   }));
   // Gesamterneuerungsgrad: bereich-gewichtet (jeder Bereich mit Inhalt zaehlt gleich,
   // unabhaengig von der Item-Anzahl). Leere Bereiche werden ausgelassen.
-  const colPcts = DATA.map(col => col.length>0 ? colProgress(col) : null).filter(p => p!==null);
+  const colPcts = DATA.map(col => colActiveItems(col).length>0 ? colProgress(col) : null).filter(p => p!==null);
   const weightedPct = colPcts.length>0 ? Math.round(colPcts.reduce((a,b)=>a+b,0)/colPcts.length) : 0;
   document.getElementById('s-total').textContent=tT;
   document.getElementById('s-new').textContent=tN;
