@@ -985,8 +985,42 @@ function ownerClearImage(){
 }
 
 // ─── DATA ─────────────────────────────────────────────────────────────────────
-let _uid=100; function uid(){return 'x'+(++_uid);}
+let _uid=100;
+function uid(){ return 'x'+(++_uid)+'_'+Math.floor(Math.random()*46656).toString(36); }
 function it(label,subs){return{id:uid(),label,subs:subs?subs.map(s=>({id:uid(),label:s})):[]}}
+
+// Setzt den ID-Zaehler ueber die hoechste bereits vergebene Nummer,
+// damit neu hinzugefuegte Eintraege keine bestehende ID wiederverwenden.
+function syncUid(){
+  let max=_uid;
+  const consider=id=>{ const m=/^x(\d+)/.exec(id||''); if(m){ const n=+m[1]; if(n>max) max=n; } };
+  DATA.forEach(col=>col.forEach(item=>{ consider(item.id); (item.subs||[]).forEach(s=>consider(s.id)); }));
+  Object.keys(ST).forEach(consider);
+  _uid=max;
+}
+
+// Entflechtet doppelte IDs: jede weitere Verwendung einer ID bekommt eine neue,
+// Status/Ueberarbeitungsgrad/Kommentare werden mitkopiert (Zustand bleibt erhalten).
+function dedupeIds(){
+  const seen=new Set();
+  let changed=false;
+  const reassign=(obj)=>{
+    const old=obj.id, nw=uid();
+    if(ST[old]!==undefined) ST[nw]=ST[old];
+    if(REWORK_DATA[old]) REWORK_DATA[nw]={...REWORK_DATA[old]};
+    if(COMMENTS[old]) COMMENTS[nw]=JSON.parse(JSON.stringify(COMMENTS[old]));
+    obj.id=nw; changed=true;
+  };
+  DATA.forEach(col=>col.forEach(item=>{
+    if(seen.has(item.id)) reassign(item);
+    seen.add(item.id);
+    (item.subs||[]).forEach(sub=>{
+      if(seen.has(sub.id)) reassign(sub);
+      seen.add(sub.id);
+    });
+  }));
+  return changed;
+}
 
 const COLS=[
   {id:'c0',label:'Ferienangebote'},
@@ -1777,6 +1811,8 @@ async function initStorage(){
   await loadComments();
   await loadOwners();
   await loadReworkData();
+  syncUid();
+  if(dedupeIds()){ await saveToStorage(); await saveComments(); await saveReworkData(); }
   buildAll();
   setMode('new');
   setSyncStatus('ok','Verbunden');
