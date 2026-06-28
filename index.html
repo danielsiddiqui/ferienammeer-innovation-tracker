@@ -484,19 +484,7 @@ tbody tr:nth-child(even) td.dcell{background:#fafefe;}
   </table>
 </div>
 
-<div class="add-row-wrap desktop-only">
-  <button class="add-row-btn" onclick="addRow()">+ Zeile hinzufügen</button>
-</div>
-
 <div class="mobile-view" id="mobile-view"></div>
-
-<div class="auw">
-  <div class="aw-hdr">
-    <div><div class="aw-title">Auswertung pro Kategorie</div></div>
-    <div class="aw-sub">Ziel: min. 25% · Neu + Überarbeiten</div>
-  </div>
-  <div class="aw-body" id="aw-body"></div>
-</div>
 
 <div class="footer">
   <div class="footer-brand">FERIEN AM MEER <span>· Programm-Planer 2026</span></div>
@@ -1587,23 +1575,6 @@ function updateStats(){
     const pEl=th.querySelector('.cpct');const fEl=th.querySelector('.cmfill');
     if(pEl)pEl.textContent=Math.round(p)+'%';
     if(fEl){fEl.style.width=goalBarW(p)+'%';fEl.className='cmfill'+(p>=25?' reached':'');}
-  });
-  const awBody=document.getElementById('aw-body');awBody.innerHTML='';
-  DATA.forEach((col,ci)=>{
-    const total=col.length;let nw=0,kp=0,rw=0,st=0;
-    col.forEach(item=>{const s=getEffectiveStatus(item);if(s==='new')nw++;else if(s==='keep')kp++;else if(s==='rework')rw++;else if(s==='strike')st++;});
-    const p=Math.round(colProgress(col));
-    const fc=p>=25?'good':p>=15?'warn':'low';
-    const card=document.createElement('div');card.className='ccard';
-    card.innerHTML=`<div class="ccard-title">${COLS[ci].label}</div>
-      <div class="ccard-bar"><div class="ccard-fill ${fc}" style="width:${goalBarW(p)}%"></div></div>
-      <div class="ccard-stats">
-        <div class="cs new">✦ ${nw} Neu</div><div class="cs keep">● ${kp} Beh.</div>
-        <div class="cs rework">↻ ${rw} Über.</div><div class="cs strike">✕ ${st} Str.</div>
-        <span style="font-size:10px;font-weight:600;color:#aaa">${total} total</span>
-      </div>
-      <div class="gbadge ${p>=25?'ok':'nok'}">${p>=25?'✓ Ziel erreicht ('+p+'%)':'◦ '+p+'% · Ziel: 25%'}</div>`;
-    awBody.appendChild(card);
   });
 }
 
