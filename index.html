@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" xmlns:mso="urn:schemas-microsoft-com:office:office" xmlns:msdt="uuid:C2F41010-65B3-11d1-A29F-00AA00C14882">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
@@ -393,6 +393,14 @@ tbody tr:nth-child(even) td.dcell{background:#fafefe;}
 .ccm-owner{width:26px;height:26px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);flex-shrink:0;}
 .ccm-owner-ph{width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.12);border:2px dashed rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
 </style>
+
+<!--[if gte mso 9]><xml>
+<mso:CustomDocumentProperties>
+<mso:_dlc_DocId msdt:dt="string">XDXM64HRJN2T-368737456-407056</mso:_dlc_DocId>
+<mso:_dlc_DocIdItemGuid msdt:dt="string">c72642e7-1d64-4cc5-ba76-2df2b8e98113</mso:_dlc_DocIdItemGuid>
+<mso:_dlc_DocIdUrl msdt:dt="string">https://surprisekultour.sharepoint.com/sites/Reisen/_layouts/15/DocIdRedir.aspx?ID=XDXM64HRJN2T-368737456-407056, XDXM64HRJN2T-368737456-407056</mso:_dlc_DocIdUrl>
+</mso:CustomDocumentProperties>
+</xml><![endif]-->
 </head>
 <body>
 
@@ -595,10 +603,9 @@ document.addEventListener('keydown', e=>{
 });
 
 // ─── SUPABASE BACKEND ─────────────────────────────────────────────────────────
-// Hier die beiden Werte aus deinem Supabase-Projekt eintragen
-// (Project Settings → API): Project URL und anon public key.
-const SUPABASE_URL = 'HIER_PROJECT_URL_EINTRAGEN';
-const SUPABASE_KEY = 'HIER_ANON_KEY_EINTRAGEN';
+// Werte aus dem Supabase-Projekt (Settings → API Keys): Project URL + Publishable key.
+const SUPABASE_URL = 'https://ogglemkiafpngdnwjnxn.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_6lxsPizNFUsZ3bxajHu27A_aAvOmMWE';
 
 let _sb = null;
 function sbClient(){
