@@ -189,7 +189,13 @@ tbody tr:nth-child(even) td.dcell{background:#fafefe;}
 .add-row-btn:hover{background:#e8f4f6;}
 
 /* COL TOGGLE */
-.col-toggle-bar{background:#f5fafa;border-bottom:1px solid #dceef0;padding:7px 32px;display:none;gap:8px;align-items:center;flex-wrap:wrap;}
+.col-toggle-bar{background:#f5fafa;border-bottom:1px solid #dceef0;padding:7px 32px;display:none;flex-direction:column;align-items:flex-start;gap:8px;}
+.cttrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;width:100%;}
+.sfchip{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;padding:3px 9px;border-radius:12px;cursor:pointer;border:1px solid #cdd8da;background:white;color:var(--teal-dark);font-family:'Nunito',sans-serif;}
+.sfchip.on{border-color:var(--teal-mid);background:var(--teal-mid);color:white;}
+.sfdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.sfchip.on .sfdot{box-shadow:0 0 0 1.5px rgba(255,255,255,.6);}
+.sf-dim{opacity:.16!important;transition:opacity .2s;}
 .clbl{font-size:9px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:var(--teal-mid);}
 .ctbtn{font-size:10px;font-weight:700;padding:3px 9px;border-radius:12px;cursor:pointer;border:1px solid #cdd8da;background:white;color:var(--teal-dark);font-family:'Nunito',sans-serif;}
 .ctbtn.off{background:#f0f4f5;color:#aaa;text-decoration:line-through;}
@@ -1236,32 +1242,75 @@ function buildAll(){
   buildColToggles(); buildHeader(); buildTableBody(); buildMobileView(); updateStats();
 }
 
+// Status-Filter (Hervorheben) – reine Ansicht, aendert NICHT die Markierung.
+const STATUS_FILTER_DEFS=[
+  {k:'new',   label:'Neu',          color:'var(--new)'},
+  {k:'keep',  label:'Behalten',     color:'var(--keep)'},
+  {k:'rework',label:'Überarbeiten', color:'var(--rework)'},
+  {k:'strike',label:'Streichen',    color:'var(--strike)'},
+  {k:'none',  label:'Offen',        color:'rgba(26,74,82,.3)'},
+];
+let statusFilter=new Set();
+
 function buildColToggles(){
   const bar=document.getElementById('col-toggle-bar');
-  bar.innerHTML='<span class="clbl">Spalten:</span>';
+  bar.innerHTML='';
+  // Zeile 1: Spalten ein-/ausblenden
+  const r1=document.createElement('div'); r1.className='cttrow';
+  r1.innerHTML='<span class="clbl">Spalten:</span>';
   COLS.forEach((col,ci)=>{
     if(ci===0) return;
     const b=document.createElement('button');
     b.className='ctbtn'+(col.hidden?' off':'');
     b.textContent=col.label;
     b.onclick=()=>{col.hidden=!col.hidden;buildAll();};
-    bar.appendChild(b);
+    r1.appendChild(b);
   });
   const hidden=COLS.filter((c,ci)=>ci>0&&c.hidden).length;
   if(hidden>0){
     const rb=document.createElement('button');
-    rb.className='ctbtn ct-reset';
-    rb.textContent='↺ Alle anzeigen';
+    rb.className='ctbtn ct-reset'; rb.textContent='↺ Alle anzeigen';
     rb.onclick=()=>{COLS.forEach(c=>c.hidden=false);buildAll();};
-    bar.appendChild(rb);
+    r1.appendChild(rb);
   }
+  bar.appendChild(r1);
+  // Zeile 2: Status hervorheben (Sitzungsmodus)
+  const r2=document.createElement('div'); r2.className='cttrow';
+  r2.innerHTML='<span class="clbl">Hervorheben:</span>';
+  STATUS_FILTER_DEFS.forEach(def=>{
+    const c=document.createElement('button');
+    c.className='sfchip'+(statusFilter.has(def.k)?' on':'');
+    c.innerHTML='<span class="sfdot" style="background:'+def.color+'"></span>'+def.label;
+    c.onclick=()=>{ statusFilter.has(def.k)?statusFilter.delete(def.k):statusFilter.add(def.k); buildColToggles(); applyStatusFilter(); };
+    r2.appendChild(c);
+  });
+  if(statusFilter.size>0){
+    const cb=document.createElement('button');
+    cb.className='ctbtn ct-reset'; cb.textContent='↺ Hervorhebung aus';
+    cb.onclick=()=>{ statusFilter.clear(); buildColToggles(); applyStatusFilter(); };
+    r2.appendChild(cb);
+  }
+  bar.appendChild(r2);
   updateFilterBtn();
 }
 function updateFilterBtn(){
   const btn=document.getElementById('filter-btn'); if(!btn) return;
   const hidden=COLS.filter((c,ci)=>ci>0&&c.hidden).length;
-  if(hidden>0){ btn.classList.add('filtering'); btn.textContent='⊞ Filter · '+hidden+' aus'; }
-  else { btn.classList.remove('filtering'); btn.textContent='⊞ Filter'; }
+  let txt='⊞ Filter';
+  if(hidden>0) txt+=' · '+hidden+' aus';
+  if(statusFilter.size>0) txt+=' · Fokus';
+  btn.textContent=txt;
+  btn.classList.toggle('filtering', hidden>0 || statusFilter.size>0);
+}
+// Blendet nicht passende Punkte ab (dim). Reine Ansicht.
+function applyStatusFilter(){
+  const active=statusFilter.size>0;
+  document.querySelectorAll('.iitem').forEach(el=>{
+    const dim = active && !statusFilter.has(el.dataset.status||'none');
+    el.classList.toggle('sf-dim', dim);
+    const next=el.nextElementSibling;
+    if(next && next.classList.contains('subs-wrap')) next.classList.toggle('sf-dim', dim);
+  });
 }
 function toggleColBar(){
   const bar=document.getElementById('col-toggle-bar');
@@ -1326,6 +1375,7 @@ function buildTableBody(){
     td.appendChild(ab); trAdd.appendChild(td);
   });
   tbody.appendChild(trAdd);
+  applyStatusFilter();
 }
 
 function buildItem(item,ci,idx){
@@ -1334,6 +1384,7 @@ function buildItem(item,ci,idx){
   wrap.draggable=true;
   const s=getEffectiveStatus(item);
   if(s!=='none') wrap.classList.add(s);
+  wrap.dataset.status = s;
   const isAuto = computeParentStatus(item) !== null;
 
   const irow=document.createElement('div'); irow.className='irow';
@@ -1481,6 +1532,7 @@ function buildMobileView(){
     card.appendChild(hdr);card.appendChild(cbar);card.appendChild(body);
     mv.appendChild(card);
   });
+  applyStatusFilter();
 }
 
 function clearDragOver(){document.querySelectorAll('.dragover-top,.dragover-bottom').forEach(el=>{el.classList.remove('dragover-top','dragover-bottom');});}
