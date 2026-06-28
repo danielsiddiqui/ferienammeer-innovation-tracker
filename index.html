@@ -119,6 +119,8 @@ body{background:var(--sand);font-family:'Nunito',sans-serif;min-height:100vh;}
 @keyframes glow{from{box-shadow:0 0 6px rgba(39,174,96,.5);}to{box-shadow:0 0 16px rgba(39,174,96,.8);}}
 .act-btn{padding:5px 12px;background:#f0f4f5;border:1px solid #cdd8da;border-radius:20px;font-size:11px;font-weight:700;color:var(--teal-dark);cursor:pointer;font-family:'Nunito',sans-serif;white-space:nowrap;}
 .act-btn:hover{background:#e0e8ea;}
+.act-btn.filtering{background:var(--gold);color:var(--teal-dark);border-color:var(--gold-dark);font-weight:800;}
+.act-btn.filtering:hover{background:var(--gold-dark);}
 
 /* SYNC STATUS */
 .sync-dot{width:7px;height:7px;border-radius:50%;background:#ccc;display:inline-block;margin-right:4px;transition:background .3s;}
@@ -464,7 +466,7 @@ tbody tr:nth-child(even) td.dcell{background:#fafefe;}
   <span class="sync-dot" id="sync-dot"></span>
   <span id="sync-lbl" style="font-size:10px;color:#aaa;white-space:nowrap"></span>
   <div class="sdv"></div>
-  <button class="act-btn" onclick="toggleColBar()">⊞ Filter</button>
+  <button class="act-btn" id="filter-btn" onclick="toggleColBar()">⊞ Filter</button>
   <button class="act-btn" id="feed-nav-btn" onclick="toggleView()">📋 Feed</button>
 </div>
 
@@ -1246,6 +1248,13 @@ function buildColToggles(){
     b.onclick=()=>{col.hidden=!col.hidden;buildAll();};
     bar.appendChild(b);
   });
+  updateFilterBtn();
+}
+function updateFilterBtn(){
+  const btn=document.getElementById('filter-btn'); if(!btn) return;
+  const hidden=COLS.filter((c,ci)=>ci>0&&c.hidden).length;
+  if(hidden>0){ btn.classList.add('filtering'); btn.textContent='⊞ Filter · '+hidden+' aus'; }
+  else { btn.classList.remove('filtering'); btn.textContent='⊞ Filter'; }
 }
 function toggleColBar(){
   const bar=document.getElementById('col-toggle-bar');
