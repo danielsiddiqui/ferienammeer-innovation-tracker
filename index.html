@@ -1555,10 +1555,10 @@ function updateStats(){
     tT++;const s=getEffectiveStatus(item);
     if(s==='new')tN++;else if(s==='keep')tK++;else if(s==='rework')tR++;else if(s==='strike')tSt++;
   }));
-  // Weighted overall progress
-  const allWeighted = DATA.reduce((sum,col)=>sum+col.reduce((s,item)=>s+itemChangeWeight(item),0),0);
-  const allTotal = DATA.reduce((sum,col)=>sum+col.length,0);
-  const weightedPct = allTotal>0?Math.round(allWeighted/allTotal*100):0;
+  // Gesamterneuerungsgrad: bereich-gewichtet (jeder Bereich mit Inhalt zaehlt gleich,
+  // unabhaengig von der Item-Anzahl). Leere Bereiche werden ausgelassen.
+  const colPcts = DATA.map(col => col.length>0 ? colProgress(col) : null).filter(p => p!==null);
+  const weightedPct = colPcts.length>0 ? Math.round(colPcts.reduce((a,b)=>a+b,0)/colPcts.length) : 0;
   document.getElementById('s-total').textContent=tT;
   document.getElementById('s-new').textContent=tN;
   document.getElementById('s-keep').textContent=tK;
