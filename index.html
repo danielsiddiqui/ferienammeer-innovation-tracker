@@ -903,15 +903,71 @@ function editOwner(colId){
   });
 }
 
+// ── Gesichtserkennung (lazy) ──────────────────────────────────────────────────
+// BlazeFace wird erst beim ersten Upload nachgeladen, hält die Seite sonst leicht.
+let _bfModel=null, _bfLoading=null;
+function loadFaceModel(){
+  if(_bfModel) return Promise.resolve(_bfModel);
+  if(_bfLoading) return _bfLoading;
+  const inject=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s);});
+  _bfLoading = inject('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.21.0/dist/tf.min.js')
+    .then(()=>inject('https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.0.7/dist/blazeface.min.js'))
+    .then(()=>window.blazeface.load())
+    .then(m=>{_bfModel=m;return m;});
+  return _bfLoading;
+}
+
+// Schneidet ein Bild eng um das groesste erkannte Gesicht zu (quadratisch, 256px).
+// Faellt auf einen oberen, zentrierten Quadrat-Zuschnitt zurueck, wenn kein Gesicht erkannt wird.
+async function faceCropToDataUrl(img){
+  const TARGET=256;
+  const iw=img.naturalWidth||img.width, ih=img.naturalHeight||img.height;
+  let box=null;
+  try{
+    const model=await loadFaceModel();
+    const preds=await model.estimateFaces(img,false);
+    if(preds&&preds.length){
+      let best=preds[0],bestA=-1;
+      preds.forEach(p=>{const w=p.bottomRight[0]-p.topLeft[0],h=p.bottomRight[1]-p.topLeft[1];const a=w*h;if(a>bestA){bestA=a;best=p;}});
+      box={x:best.topLeft[0],y:best.topLeft[1],w:best.bottomRight[0]-best.topLeft[0],h:best.bottomRight[1]-best.topLeft[1]};
+    }
+  }catch(e){ /* Fallback unten */ }
+  let side,sx,sy;
+  if(box){
+    const cx=box.x+box.w/2, cy=box.y+box.h/2;
+    side=Math.max(box.w,box.h)*1.7;            // etwas Rand fuer Kopf/Kinn
+    sx=cx-side/2;
+    sy=cy-side/2 - box.h*0.15;                  // leicht nach oben, Stirn einschliessen
+  } else {
+    side=Math.min(iw,ih);
+    sx=(iw-side)/2;
+    sy=(ih-side)*0.18;                          // Portraits: Gesicht eher oben
+  }
+  side=Math.min(side,iw,ih);
+  sx=Math.max(0,Math.min(sx,iw-side));
+  sy=Math.max(0,Math.min(sy,ih-side));
+  const c=document.createElement('canvas'); c.width=TARGET; c.height=TARGET;
+  c.getContext('2d').drawImage(img, sx,sy,side,side, 0,0,TARGET,TARGET);
+  return c.toDataURL('image/jpeg',0.9);
+}
+
 function ownerFileChange(){
   const file = document.getElementById('ow-file').files[0];
   if(!file) return;
   const reader = new FileReader();
   reader.onload = e => {
     const prev = document.getElementById('op-preview');
-    prev.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;">`;
-    document.getElementById('ow-url').value = '';
-    const cb=document.getElementById('ow-clear-img'); if(cb) cb.style.display='inline-block';
+    prev.innerHTML = '⏳';
+    const img = new Image();
+    img.onload = async () => {
+      let out = e.target.result;
+      try{ out = await faceCropToDataUrl(img); }catch(_){}
+      prev.innerHTML = `<img src="${out}" style="width:100%;height:100%;object-fit:cover;">`;
+      document.getElementById('ow-url').value = '';
+      const cb=document.getElementById('ow-clear-img'); if(cb) cb.style.display='inline-block';
+    };
+    img.onerror = () => { prev.innerHTML='⚠️'; };
+    img.src = e.target.result;
   };
   reader.readAsDataURL(file);
 }
