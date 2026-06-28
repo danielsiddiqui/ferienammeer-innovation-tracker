@@ -415,6 +415,10 @@ tbody tr:nth-child(even) td.dcell{background:#fafefe;}
       <label>Dein Name</label>
       <input type="text" id="name-inp" placeholder="vorname.nachname" autocomplete="name" maxlength="40">
     </div>
+    <div class="auth-field">
+      <label>Passwort</label>
+      <input type="password" id="pw-inp" placeholder="Passwort" autocomplete="current-password">
+    </div>
     <div class="auth-err hidden" id="name-err">Bitte einen Namen eingeben.</div>
     <button class="auth-btn" onclick="doLogin()">Los geht's →</button>
   </div>
@@ -561,9 +565,14 @@ tbody tr:nth-child(even) td.dcell{background:#fafefe;}
 let ME = '';
 const SESSION_KEY = 'fam-session-v1';
 
+const ACCESS_PW = 'FAMtracker26!';
 function doLogin(){
   const v = document.getElementById('name-inp').value.trim();
-  if(!v){ document.getElementById('name-err').classList.remove('hidden'); return; }
+  const pw = document.getElementById('pw-inp').value;
+  const err = document.getElementById('name-err');
+  if(!v){ err.textContent='Bitte einen Namen eingeben.'; err.classList.remove('hidden'); return; }
+  if(pw !== ACCESS_PW){ err.textContent='Falsches Passwort.'; err.classList.remove('hidden'); document.getElementById('pw-inp').focus(); return; }
+  err.classList.add('hidden');
   loginSuccess(v);
 }
 
@@ -583,6 +592,7 @@ async function doLogout(){
   document.getElementById('user-badge').style.display = 'none';
   document.getElementById('auth-bg').style.display = 'flex';
   document.getElementById('name-inp').value = '';
+  const pwEl=document.getElementById('pw-inp'); if(pwEl) pwEl.value='';
   document.getElementById('name-inp').focus();
 }
 
