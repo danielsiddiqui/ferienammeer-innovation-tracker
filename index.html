@@ -890,7 +890,8 @@ function editOwner(colId){
         <input type="file" id="ow-file" accept="image/*" style="font-size:11px;margin-bottom:6px;" onchange="ownerFileChange()">
         <input type="text" id="ow-url" value="${esc(cur.img&&cur.img.startsWith('http')?cur.img:'')}" placeholder="oder Bild-URL einfügen" oninput="ownerUrlChange()">
       </div>
-    </div>`;
+    </div>
+    <button type="button" id="ow-clear-img" onclick="ownerClearImage()" style="font-size:11px;font-weight:700;color:#c0392b;background:var(--strike-bg);border:1px solid #f0b8b0;border-radius:4px;padding:5px 10px;cursor:pointer;font-family:Nunito,sans-serif;margin-bottom:10px;display:${cur.img?'inline-block':'none'};">🗑 Bild entfernen</button>`;
   openModal('Zuständige Person', bodyHTML, ()=>{
     const name = document.getElementById('ow-name').value.trim();
     const url  = document.getElementById('ow-url').value.trim();
@@ -910,6 +911,7 @@ function ownerFileChange(){
     const prev = document.getElementById('op-preview');
     prev.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;">`;
     document.getElementById('ow-url').value = '';
+    const cb=document.getElementById('ow-clear-img'); if(cb) cb.style.display='inline-block';
   };
   reader.readAsDataURL(file);
 }
@@ -918,6 +920,14 @@ function ownerUrlChange(){
   const prev = document.getElementById('op-preview');
   if(url){ prev.innerHTML=`<img src="${url}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentNode.innerHTML='⚠️'">`; }
   else { prev.innerHTML='👤'; }
+  const cb=document.getElementById('ow-clear-img'); if(cb) cb.style.display = url?'inline-block':'none';
+}
+// Bild entfernen: Vorschau zuruecksetzen + Felder leeren. Beim Speichern wird kein Bild uebernommen.
+function ownerClearImage(){
+  document.getElementById('op-preview').innerHTML='👤';
+  document.getElementById('ow-url').value='';
+  const f=document.getElementById('ow-file'); if(f) f.value='';
+  const cb=document.getElementById('ow-clear-img'); if(cb) cb.style.display='none';
 }
 
 // ─── DATA ─────────────────────────────────────────────────────────────────────
