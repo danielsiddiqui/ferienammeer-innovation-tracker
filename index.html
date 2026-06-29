@@ -1311,6 +1311,8 @@ function voteIdea(colId,ideaId){
   saveIdeas();buildTableBody();buildMobileView();
 }
 function deleteIdea(colId,ideaId){
+  const idea=(IDEAS[colId]||[]).find(i=>i.id===ideaId);
+  if(!confirm('Idee „'+(idea?idea.text:'')+'" wirklich löschen?'))return;
   IDEAS[colId]=(IDEAS[colId]||[]).filter(i=>i.id!==ideaId);
   saveIdeas();buildTableBody();buildMobileView();
 }
@@ -1750,7 +1752,7 @@ function editItemLabel(item,ci,idx){
     `<label>Bezeichnung</label><input type="text" id="ei-lbl" value="${esc(item.label)}">`,
     ()=>{const v=document.getElementById('ei-lbl').value.trim();if(v&&v!==oldLabel){logFeedEvent('rename',{item:oldLabel,newName:v});item.label=v;buildTableBody();buildMobileView();updateStats();debounceSave();}});
 }
-function deleteItem(ci,idx){const item=DATA[ci][idx];const lbl=item?item.label:'';if(item){delete REWORK_DATA[item.id];(item.subs||[]).forEach(s=>delete REWORK_DATA[s.id]);}DATA[ci].splice(idx,1);buildTableBody();buildMobileView();updateStats();debounceSave();saveReworkData();logFeedEvent('delete',{item:lbl,col:COLS[ci].label});}
+function deleteItem(ci,idx){const item=DATA[ci][idx];const lbl=item?item.label:'';if(!confirm('Punkt „'+lbl+'" wirklich löschen?'))return;if(item){delete REWORK_DATA[item.id];(item.subs||[]).forEach(s=>delete REWORK_DATA[s.id]);}DATA[ci].splice(idx,1);buildTableBody();buildMobileView();updateStats();debounceSave();saveReworkData();logFeedEvent('delete',{item:lbl,col:COLS[ci].label});}
 function addItem(ci){
   openModal('Neues Item',`<label>Bezeichnung</label><input type="text" id="ai-lbl" placeholder="Name">`,
     ()=>{const v=document.getElementById('ai-lbl').value.trim();if(v){DATA[ci].push(it(v));buildTableBody();buildMobileView();updateStats();debounceSave();logFeedEvent('add',{item:v,col:COLS[ci].label});}});
@@ -1776,7 +1778,7 @@ function editSubLabel(item,sub,ci,idx,si){
   openModal('Unterpunkt umbenennen',`<label>Bezeichnung</label><input type="text" id="sl-inp" value="${esc(sub.label)}">`,
     ()=>{const v=document.getElementById('sl-inp').value.trim();if(v&&v!==oldLabel){logFeedEvent('rename',{item:oldLabel,newName:v,parent:item.label});sub.label=v;buildTableBody();buildMobileView();debounceSave();}});
 }
-function deleteSub(item,si,ci,idx){const sub=item.subs[si];const lbl=sub?sub.label:'';if(sub)delete REWORK_DATA[sub.id];item.subs.splice(si,1);buildTableBody();buildMobileView();updateStats();debounceSave();saveReworkData();logFeedEvent('delete',{item:lbl,col:item.label+' (Unterpunkt)'});}
+function deleteSub(item,si,ci,idx){const sub=item.subs[si];const lbl=sub?sub.label:'';if(!confirm('Unterpunkt „'+lbl+'" wirklich löschen?'))return;if(sub)delete REWORK_DATA[sub.id];item.subs.splice(si,1);buildTableBody();buildMobileView();updateStats();debounceSave();saveReworkData();logFeedEvent('delete',{item:lbl,col:item.label+' (Unterpunkt)'});}
 function addSub(item,ci,idx){
   openModal('Unterpunkt hinzufügen',`<label>Bezeichnung</label><input type="text" id="as-inp" placeholder="Name">`,
     ()=>{const v=document.getElementById('as-inp').value.trim();if(v){item.subs.push({id:uid(),label:v});buildTableBody();buildMobileView();debounceSave();logFeedEvent('add',{item:v,col:item.label+' (Unterpunkt)'});}});
