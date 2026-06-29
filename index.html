@@ -291,6 +291,8 @@ tbody tr:nth-child(even) td.dcell{background:#fafefe;}
 .footer-brand{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.12em;color:var(--gold);}
 .footer-brand span{color:rgba(255,255,255,.3);font-size:11px;}
 .tip{position:fixed;background:var(--teal-dark);color:white;font-size:10px;font-weight:700;padding:5px 10px;border-radius:4px;pointer-events:none;z-index:9999;opacity:0;transition:opacity .1s;white-space:nowrap;}
+.utip{position:fixed;background:var(--teal-dark);color:white;font-size:10px;font-weight:700;padding:4px 9px;border-radius:4px;pointer-events:none;z-index:9999;opacity:0;transition:opacity .1s;white-space:nowrap;transform:translate(-50%,-100%);}
+.utip.on{opacity:1;}
 .tip.on{opacity:1;}
 
 /* ── AUTH SCREEN ── */
@@ -575,7 +577,9 @@ tbody tr:nth-child(even) td.dcell{background:#fafefe;}
 </div>
 
 <div class="tip" id="tip"></div>
+<div class="utip" id="utip"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/drag-drop-touch@1.3.1/DragDropTouch.js"></script>
 <div class="modal-bg hidden" id="modal-bg">
   <div class="modal">
     <h3 id="modal-title">Bearbeiten</h3>
@@ -1350,6 +1354,16 @@ function buildIdeasPool(ci){
   pool.addEventListener('drop',e=>{ pool.classList.remove('park-over'); if(drag.id){e.preventDefault();e.stopPropagation();parkItem(drag.ci,drag.idx);} });
   return pool;
 }
+// Zeigt den vollen Benutzernamen beim Hover ueber eine Initiale (instant, ohne Clipping).
+function attachNameTip(el,name){
+  el.style.cursor='help'; el.title=name;
+  el.addEventListener('mouseenter',()=>{
+    const t=document.getElementById('utip'); if(!t)return;
+    t.textContent=name; const r=el.getBoundingClientRect();
+    t.style.left=(r.left+r.width/2)+'px'; t.style.top=(r.top-6)+'px'; t.classList.add('on');
+  });
+  el.addEventListener('mouseleave',()=>{const t=document.getElementById('utip'); if(t)t.classList.remove('on');});
+}
 function buildIdeaCard(idea,colId,ci){
   const c=document.createElement('div');c.className='idea-card';c.draggable=true;
   const top=document.createElement('div');top.className='idea-card-top';
@@ -1359,9 +1373,9 @@ function buildIdeaCard(idea,colId,ci){
   c.appendChild(top);
   if(idea.desc){const ds=document.createElement('div');ds.className='idea-desc';ds.textContent=idea.desc;c.appendChild(ds);}
   const meta=document.createElement('div');meta.className='idea-meta';
-  const av=document.createElement('span');av.className='idea-av';av.textContent=(idea.author||'?')[0].toUpperCase();av.title=idea.author||'';
+  const av=document.createElement('span');av.className='idea-av';av.textContent=(idea.author||'?')[0].toUpperCase();attachNameTip(av,idea.author||'?');
   const vc=ideaVoteCount(idea);
-  const voteB=document.createElement('button');voteB.className='idea-vote'+(idea.votes&&idea.votes[ME]?' voted':'');voteB.textContent='▲ '+vc;voteB.title='Gefällt mir';
+  const voteB=document.createElement('button');voteB.className='idea-vote'+(idea.votes&&idea.votes[ME]?' voted':'');voteB.textContent='👍 '+vc;voteB.title='Gefällt mir';
   voteB.onclick=e=>{e.stopPropagation();voteIdea(colId,idea.id);};
   const delB=document.createElement('button');delB.className='idea-del';delB.textContent='✕';delB.title='Idee löschen';delB.style.marginLeft='auto';
   delB.onclick=e=>{e.stopPropagation();deleteIdea(colId,idea.id);};
