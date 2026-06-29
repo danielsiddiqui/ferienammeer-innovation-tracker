@@ -404,7 +404,12 @@ tbody tr:nth-child(even) td.dcell{background:#fafefe;}
 .ccm-owner-ph{width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.12);border:2px dashed rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
 
 /* IDEEN-POOL */
-.ideas-cell{vertical-align:top;background:#fbf7ec!important;border-top:2px dashed var(--gold)!important;}
+.ideas-section-hd{background:var(--teal-dark);padding:0;border-top:3px solid var(--gold);}
+.ideas-section-inner{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 16px;flex-wrap:wrap;}
+.ideas-section-title{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--gold);letter-spacing:.07em;}
+.ideas-section-hint{font-size:10px;color:rgba(255,255,255,.45);letter-spacing:.04em;}
+.ideas-cell{vertical-align:top;background:#fbf7ec!important;}
+.idea-desc{font-size:9px;color:#7a8a8e;line-height:1.35;font-style:italic;border-left:2px solid var(--gold);padding-left:5px;margin-left:1px;}
 .ideas-pool{display:flex;flex-direction:column;gap:5px;min-height:44px;border-radius:5px;transition:background .15s;padding:3px;}
 .ideas-pool.park-over{background:rgba(245,200,66,.3);outline:2px dashed var(--gold);outline-offset:-2px;}
 .ideas-hd{display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:1px;}
@@ -1287,10 +1292,11 @@ let dragIdea={colId:null,ideaId:null};
 
 // ─── IDEEN: Aktionen ───────────────────────────────────────────────────────────
 function addIdea(colId){
-  openModal('Neue Idee',`<label>Idee</label><input type="text" id="idea-inp" placeholder="z.B. Stand-up Paddling">`,
+  openModal('Neue Idee',`<label>Titel</label><input type="text" id="idea-inp" placeholder="z.B. Stand-up Paddling"><label>Beschreibung (optional)</label><textarea id="idea-desc" placeholder="Worum geht's? Kontext, Details…"></textarea>`,
     ()=>{const v=document.getElementById('idea-inp').value.trim();if(!v)return;
+      const desc=document.getElementById('idea-desc').value.trim();
       if(!IDEAS[colId])IDEAS[colId]=[];
-      IDEAS[colId].push({id:uid(),text:v,author:ME,ts:Date.now(),votes:{}});
+      IDEAS[colId].push({id:uid(),text:v,desc,author:ME,ts:Date.now(),votes:{}});
       saveIdeas();buildTableBody();buildMobileView();
       logFeedEvent('idea-add',{item:v,col:colLabelById(colId)});});
 }
@@ -1307,7 +1313,13 @@ function deleteIdea(colId,ideaId){
 function adoptIdea(originColId,ideaId,targetCi){
   const arr=IDEAS[originColId]||[];const idx=arr.findIndex(i=>i.id===ideaId);if(idx<0)return;
   const idea=arr.splice(idx,1)[0];
-  DATA[targetCi].push(it(idea.text));
+  const newItem=it(idea.text);
+  DATA[targetCi].push(newItem);
+  if(idea.desc){
+    if(!COMMENTS[newItem.id])COMMENTS[newItem.id]=[];
+    COMMENTS[newItem.id].push({id:uid(),author:idea.author||ME,text:idea.desc,ts:idea.ts||Date.now(),replies:[]});
+    saveComments();
+  }
   saveIdeas();saveToStorage();buildTableBody();buildMobileView();updateStats();
   logFeedEvent('idea-adopt',{item:idea.text,col:COLS[targetCi].label});
 }
@@ -1344,17 +1356,17 @@ function buildIdeaCard(idea,colId,ci){
   const grip=document.createElement('span');grip.className='idea-grip';grip.textContent='⠿';
   const txt=document.createElement('span');txt.className='idea-text';txt.textContent=idea.text;
   top.appendChild(grip);top.appendChild(txt);
+  c.appendChild(top);
+  if(idea.desc){const ds=document.createElement('div');ds.className='idea-desc';ds.textContent=idea.desc;c.appendChild(ds);}
   const meta=document.createElement('div');meta.className='idea-meta';
   const av=document.createElement('span');av.className='idea-av';av.textContent=(idea.author||'?')[0].toUpperCase();av.title=idea.author||'';
   const vc=ideaVoteCount(idea);
   const voteB=document.createElement('button');voteB.className='idea-vote'+(idea.votes&&idea.votes[ME]?' voted':'');voteB.textContent='▲ '+vc;voteB.title='Gefällt mir';
   voteB.onclick=e=>{e.stopPropagation();voteIdea(colId,idea.id);};
-  const adoptB=document.createElement('button');adoptB.className='idea-adopt';adoptB.textContent='↑ übernehmen';adoptB.title='In die Spalte übernehmen';
-  adoptB.onclick=e=>{e.stopPropagation();adoptIdea(colId,idea.id,ci);};
-  const delB=document.createElement('button');delB.className='idea-del';delB.textContent='✕';delB.title='Idee löschen';
+  const delB=document.createElement('button');delB.className='idea-del';delB.textContent='✕';delB.title='Idee löschen';delB.style.marginLeft='auto';
   delB.onclick=e=>{e.stopPropagation();deleteIdea(colId,idea.id);};
-  meta.appendChild(av);meta.appendChild(voteB);meta.appendChild(adoptB);meta.appendChild(delB);
-  c.appendChild(top);c.appendChild(meta);
+  meta.appendChild(av);meta.appendChild(voteB);meta.appendChild(delB);
+  c.appendChild(meta);
   c.addEventListener('dragstart',e=>{dragIdea={colId,ideaId:idea.id};e.dataTransfer.effectAllowed='move';setTimeout(()=>c.classList.add('dragging'),0);});
   c.addEventListener('dragend',()=>{c.classList.remove('dragging');dragIdea={colId:null,ideaId:null};clearDragOver();});
   return c;
@@ -1524,7 +1536,12 @@ function buildTableBody(){
     td.appendChild(ab); trAdd.appendChild(td);
   });
   tbody.appendChild(trAdd);
-  // Ideen-Pool pro Spalte
+  // Abgetrennter Ideen-Bereich: Kopfzeile + Pool pro Spalte
+  const visCount=COLS.filter((c,ci)=>ci===0||!c.hidden).length;
+  const trIdeasHd=document.createElement('tr');
+  const hdtd=document.createElement('td'); hdtd.className='ideas-section-hd'; hdtd.colSpan=visCount;
+  hdtd.innerHTML='<div class="ideas-section-inner"><span class="ideas-section-title">💡 Ideen-Pool</span><span class="ideas-section-hint">Idee nach oben in eine Spalte ziehen = übernehmen</span></div>';
+  trIdeasHd.appendChild(hdtd); tbody.appendChild(trIdeasHd);
   const trIdeas=document.createElement('tr');
   COLS.forEach((col,ci)=>{
     if(ci>0&&col.hidden) return;
